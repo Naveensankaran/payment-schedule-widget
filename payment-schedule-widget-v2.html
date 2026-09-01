@@ -1,25 +1,475 @@
-<!DOCTYPE html>
-<html>
-<body>
+<html><head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+<meta content="width=device-width" name="viewport">
+<style>@media only screen and (max-width: 480px) {}</style>
+</head><body><div style="font-family: Verdana, arial, Helvetica, sans-serif"><table width="1000" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; border: 1px solid rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: rgb(0, 0, 0); margin: 0 auto">
 
-<form>
-    <input type="number" id="num1" placeholder="Enter first number"
-           oninput="add()">
+  
+  <tbody><tr>
+    <td width="150" rowspan="2" style="text-align: center; border: 1px solid rgb(0, 0, 0); padding: 4px; vertical-align: middle"><img src="https://crm.zoho.in/crm/viewInLineImage?fileContent=bf1e49af09bd151a9cd35ac2f3a49ec458cb249bca6e2e64e6426fda1b251148ddef4641a74b7a645294dc7e6ff355b4adfbe81c7485bf434e92f9bab554803c6ec7da0dce0211b6f1bbe0e049edd095d0e90d86ba7fa84361bce72baf0d360d" width="164px" height="158.84375px" style="width: 164px; height: 158.844px"><br></td><td rowspan="2" style="border: 1px solid rgb(0, 0, 0); text-align: center; vertical-align: middle"><span style="font-size: 20px; font-weight: bold; color: rgb(63, 63, 63)">APARNA CONSTRUCTIONS AND ESTATES PRIVATE LIMITED</span>
+    </td>
+    <td width="110" rowspan="2" style="border: 1px solid rgb(0, 0, 0); padding: 4px; text-align: center; vertical-align: middle"><img src="https://crm.zoho.in/crm/viewInLineImage?fileContent=48bd0dc87d3f71a54689eca404f94ba95468de685a0d0a87748ec8dd6fad8788bcab0513920ac30ba9bb48f9ee43dae58c697ab1a391b7d9f8c6b776a07dd8ade8d3919d5a6990808927f767a202ab029594364a3e613a1f21fa97366670fa71" width="178px" height="119.59375px" style="width: 178px; height: 119.594px"></td>
+  </tr>
+  <tr><td style="display: none"></td></tr>
 
-    <input type="number" id="num2" placeholder="Enter second number"
-           oninput="add()">
+  
+  <tr>
+    <td colspan="3" style="border: 1px solid rgb(0, 0, 0); text-align: center; padding: 6px 0">
+      <span style="font-size: 15px; font-weight: bold; color: rgb(0, 112, 192)">PAYMENT SCHEDULE - CUM - COST SHEET</span>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" style="border: 1px solid rgb(0, 0, 0); text-align: center; padding: 4px 0">
+      <span style="font-size: 12px; font-weight: bold; color: rgb(255, 0, 0)">PHASE - I (BLOCKS - A, B, C, D, E, F, K, L, M, N &amp; O)</span>
+    </td>
+  </tr>
 
-    <p>Answer: <span id="result">0</span></p>
-</form>
+  
+  <tr>
+    <td colspan="3" style="padding: 0; border: none">
+      <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse: collapse; font-size: 11px">
+        <tbody><tr>
+          <td width="18%" style="border: 1px solid rgb(0, 0, 0); font-weight: bold">DATE OF BOOKING</td>
+          <td width="2%" style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td width="30%" style="border: 1px solid rgb(0, 0, 0)">&nbsp; ${Leads.Booking Date}</td>
+          <td width="30%" style="border: 1px solid rgb(0, 0, 0); text-align: center; font-weight: bold">Built-up Area (in Sq.Ft.)</td>
+          <td width="2%" style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td width="18%" style="border: 1px solid rgb(0, 0, 0); text-align: right; font-weight: bold"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">NAME OF THE CUSTOMER</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td><td style="border: 1px solid rgb(0, 0, 0)">${Leads.Lead Name}</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center; font-weight: bold">Differential Built-up Area (in Sq.Ft.)</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right; font-weight: bold"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">CONTACT NUMBER (1)</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">${Leads.Phone}</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center; font-weight: bold">Total Saleable Built-up Area (in Sq.Ft.)</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right; font-weight: bold"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">CONTACT NUMBER (2)</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">${Leads.Secondary Phone}</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Basic Price for Built-up Area</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right">${Lookup:Unit.Base Price}</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">EMAIL ADDRESS (1)</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">${Leads.Email}</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Basic Price for Differential Built-up Area</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right">${Lookup:Unit.Differential Built Up Area}</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">EMAIL ADDRESS (2)</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">${Leads.Secondary Email}</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Charges for Floor Rise</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right">${Lookup:Unit.Floor Rise}</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="border: 1px solid rgb(0, 0, 0); text-align: center; font-weight: bold">APARTMENT DETAILS</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Charges for Facing</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right">${Lookup:Unit.Unit Facing Charges}</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">Block</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">${Leads.Tower  test}</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Charges for Corner Preference</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right">${Lookup:Unit.Corner Facing Charges}</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">Floor</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">${Leads.floor test}</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Charges for View</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right">${Lookup:Unit.Charges For View}</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">Apartment No.</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Charges for Shifting</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right">${Lookup:Unit.Charges For Shifting}</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">UDS</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">${Lookup:Unit.Uds}</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center; font-weight: bold">BASIC UNIT VALUE</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right; font-weight: bold"> &nbsp; </td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">CAR PARKING(S)</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">${Lookup:Unit.Parking Count}</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Charges for Amenities</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right">${Lookup:Unit.Amenities Price Sft}</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">Facing</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">${Lookup:Unit.Unit Facing Direction}</td>
+          <td colspan="3" style="border: 1px solid rgb(0, 0, 0)">Charges for Gas Pipe-line Installation &nbsp;: ${Lookup:Unit.Gas Pipeline Charges}</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">Type</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">${Lookup:Unit.Unit Configuration Name}</td>
+          <td colspan="3" style="border: 1px solid rgb(0, 0, 0); text-align: center; font-weight: bold">
+            TOTAL UNIT VALUE (INCL. AMENITIES &amp; GAS PIPE-LINE) &nbsp;:&nbsp; Rs.${Lookup:Unit.All Inclusive Price}</td>
+        </tr>
+      </tbody></table>
+    </td>
+  </tr>
 
-<script>
-function add() {
-    let num1 = Number(document.getElementById("num1").value);
-    let num2 = Number(document.getElementById("num2").value);
+  
+  <tr>
+    <td colspan="3" style="border: 1px solid rgb(0, 0, 0); text-align: center; padding: 8px 0">
+      <span style="font-size: 20px; font-weight: bold">PAYMENT SCHEDULE</span>
+    </td>
+  </tr>
 
-    document.getElementById("result").innerHTML = num1 + num2;
-}
-</script>
+  
+  <tr>
+    <td colspan="3" style="padding: 0; border: none">
+      <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse: collapse; font-size: 10.5px">
+        <tbody><tr style="font-weight: bold; text-align: center">
+          <td width="4%" style="border: 1px solid rgb(0, 0, 0)">S.No</td>
+          <td width="7%" style="border: 1px solid rgb(0, 0, 0)">DATE</td>
+          <td width="27%" style="border: 1px solid rgb(0, 0, 0)">Description of Payments</td>
+          <td width="5%" style="border: 1px solid rgb(0, 0, 0)">UV %</td>
+          <td width="10%" style="border: 1px solid rgb(0, 0, 0)">Instalment Amount Payable</td>
+          <td width="5%" style="border: 1px solid rgb(0, 0, 0)">TDS</td>
+          <td width="9%" style="border: 1px solid rgb(0, 0, 0)">TDS to be Remitted through Traces of Purchaser(s)</td>
+          <td width="10%" style="border: 1px solid rgb(0, 0, 0)">Amount payable to Developer (excl. TDS)</td>
+          <td width="5%" style="border: 1px solid rgb(0, 0, 0)">GST %</td>
+          <td width="8%" style="border: 1px solid rgb(0, 0, 0)">GST Amount Payable to Developer on each instalment</td>
+          <td width="10%" style="border: 1px solid rgb(0, 0, 0)">Instalment Amount payable to Developer (incl. GST, excl. TDS)</td>
+        </tr>
 
-</body>
-</html>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">1</td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Booking Advance of 10% of Unit Value - Payable within 15 days from the date of Booking (for execution of AOS)</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">10%</td><td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">1%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">2</td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)">1st Instalment irrespective of Self / Bank Funding</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">7.3%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"><br></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">1%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">3</td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)">2nd Instalment irrespective of Self / Bank Funding</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">7.3%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">1%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">4</td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)">3rd Instalment irrespective of Self / Bank Funding</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">7.3%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">1%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5</td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)">4th Instalment irrespective of Self / Bank Funding</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">7.3%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">1%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">6</td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)">5th Instalment irrespective of Self / Bank Funding</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">7.3%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">1%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">7</td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)">6th Instalment irrespective of Self / Bank Funding</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">7.3%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">1%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">8</td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)">7th Instalment irrespective of Self / Bank Funding</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">7.3%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">1%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">9</td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)">8th Instalment irrespective of Self / Bank Funding</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">7.3%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">1%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">10</td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)">9th Instalment irrespective of Self / Bank Funding</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">26.6%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">1%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">11</td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">Handing Over of respective Apartment</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">1%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">5%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr style="font-weight: bold; text-align: center">
+          <td colspan="3" style="border: 1px solid rgb(0, 0, 0)">TOTAL - A</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">100%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+      </tbody></table>
+    </td>
+  </tr>
+
+  
+  <tr>
+    <td colspan="3" style="border: 1px solid rgb(0, 0, 0); text-align: center; padding: 5px 0">
+      <span style="font-weight: bold">AMOUNT PAYABLE AT THE TIME OF REGISTRATION OF APARTMENT</span>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" style="padding: 0; border: none">
+      <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse: collapse; font-size: 10.5px">
+        <tbody><tr>
+          <td width="6%" style="border: 1px solid rgb(0, 0, 0); text-align: center">12</td>
+          <td width="50%" style="border: 1px solid rgb(0, 0, 0)">Legal and Documentation Charges</td>
+          <td width="14%" style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td width="8%" style="border: 1px solid rgb(0, 0, 0); text-align: center">18%</td>
+          <td width="10%" style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td width="12%" style="border: 1px solid rgb(0, 0, 0); text-align: right; font-weight: bold"></td>
+        </tr>
+        <tr style="font-weight: bold">
+          <td colspan="5" style="border: 1px solid rgb(0, 0, 0)">TOTAL - B (Excluding Registration / Stamp Duty &amp; Mutation Charges)</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+      </tbody></table>
+    </td>
+  </tr>
+
+  
+  <tr>
+    <td colspan="3" style="border: 1px solid rgb(0, 0, 0); text-align: center; padding: 5px 0">
+      <span style="font-weight: bold">AMOUNTS PAYABLE AT THE TIME OF HANDING OVER OF APARTMENT</span>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" style="padding: 0; border: none">
+      <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse: collapse; font-size: 10.5px">
+        <tbody><tr style="font-weight: bold; text-align: center">
+          <td width="6%">Sl.No</td>
+          <td width="50%" style="border: 1px solid rgb(0, 0, 0)">Particulars</td>
+          <td width="14%" style="border: 1px solid rgb(0, 0, 0)">Amount Payable</td>
+          <td width="8%" style="border: 1px solid rgb(0, 0, 0)">GST %</td>
+          <td width="10%" style="border: 1px solid rgb(0, 0, 0)">GST Amount</td>
+          <td width="12%" style="border: 1px solid rgb(0, 0, 0)">Amount Payable incl. GST (in INR)</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">13</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Maintenance for 2 years @ Rs. 96/- per Sq.ft &amp; GST @ 18%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">18%</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">14</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Corpus Fund</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">-</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right">-</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">15</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Non-refundable Caution Deposit</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">-</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right">-</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">16</td>
+          <td style="border: 1px solid rgb(0, 0, 0)">Refundable Caution Deposit</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: center">-</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right">-</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+        <tr style="font-weight: bold; text-align: center">
+          <td colspan="2" style="border: 1px solid rgb(0, 0, 0)">TOTAL - C</td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0)"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+          <td style="border: 1px solid rgb(0, 0, 0); text-align: right"></td>
+        </tr>
+      </tbody></table>
+    </td>
+  </tr>
+
+  
+  <tr>
+    <td colspan="3" style="border-top: 3px double rgb(0, 0, 0); border-bottom: 3px double rgb(0, 0, 0); border-left: 1px solid rgb(0, 0, 0); border-right: 1px solid rgb(0, 0, 0); text-align: center; padding: 8px 4px">
+      <span style="font-size: 13px; font-weight: bold">
+        GRAND TOTAL (A + B + C) - (INCLUDING TDS / EXCLUDING REGISTRATION, STAMPDUTY &amp; MUTATION CHARGES)&nbsp;:&nbsp;
+        Rs. 
+      </span>
+    </td>
+  </tr>
+
+  
+  <tr>
+    <td colspan="3" style="border: 1px solid rgb(0, 0, 0); text-align: center; padding: 5px 0; background: rgb(127, 127, 127)">
+      <span style="font-weight: bold; color: rgb(255, 255, 255)">OTHER TERMS &amp; CONDITIONS</span>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" style="padding: 0; border: none">
+      <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse: collapse; font-size: 10px">
+        <tbody><tr><td width="3%" style="border: 1px solid rgb(0, 0, 0); text-align: center">1</td><td style="border: 1px solid rgb(0, 0, 0)">The purchaser/s shall issue post dated cheques for all installments as per the Payment Schedule mentioned above irrespective of mode of funding i.e., self / bank finance. The PDC's shall be returned to customers in line with disbursements made. If the banker fails to disburse the amount, PDC shall be deposited as per the mentioned dates.</td></tr>
+        <tr><td style="border: 1px solid rgb(0, 0, 0); text-align: center">2</td><td style="border: 1px solid rgb(0, 0, 0)">Installments mentioned above shall be paid as per the work progress on the date of booking - no deviation is allowed.</td></tr>
+        <tr><td style="border: 1px solid rgb(0, 0, 0); text-align: center">3</td><td style="border: 1px solid rgb(0, 0, 0)">All consent letters from the customers addressed to respective banks shall be given at the time of entering into 'AOS' / Tripartite Agreement.</td></tr>
+        <tr><td style="border: 1px solid rgb(0, 0, 0); text-align: center">4</td><td style="border: 1px solid rgb(0, 0, 0)">GST and other taxes if any shall be levied as applicable and as per the rules / laws amended from time to time.</td></tr>
+        <tr><td style="border: 1px solid rgb(0, 0, 0); text-align: center">5</td><td style="border: 1px solid rgb(0, 0, 0)">* GST is Applicable on Cost of Apartment including Amenities, Maintenance Charges &amp; Gaspipeline Charges.</td></tr>
+        <tr><td style="border: 1px solid rgb(0, 0, 0); text-align: center">6</td><td style="border: 1px solid rgb(0, 0, 0)">Registration shall commence on payment of 100% of the Cost of the Apartment.</td></tr>
+        <tr><td style="border: 1px solid rgb(0, 0, 0); text-align: center">7</td><td style="border: 1px solid rgb(0, 0, 0)">Registration charges are subject to changes as per the provisions of registrations act prevailing at the time of registration.</td></tr>
+        <tr><td style="border: 1px solid rgb(0, 0, 0); text-align: center">8</td><td style="border: 1px solid rgb(0, 0, 0)">Bank Charges for realization of out station cheques &amp; Cheque return charges will be recovered from the purchaser's account.</td></tr>
+      </tbody></table>
+    </td>
+  </tr>
+
+  
+  <tr>
+    <td colspan="3" style="border: 1px solid rgb(0, 0, 0); padding: 4px 6px; background: rgb(127, 127, 127)">
+      <span style="font-weight: bold; color: rgb(255, 255, 255)">NOTE : PDCS FOR THE AMOUNTS MENTIONED IN ABOVE SCHEDULE TO BE ISSUED IN THE FOLLOWING NAMES:</span>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" style="padding: 0; border: none">
+      <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse: collapse; font-size: 10.5px">
+        <tbody><tr><td width="3%" style="border: 1px solid rgb(0, 0, 0)">1)</td><td width="27%" style="border: 1px solid rgb(0, 0, 0); font-weight: bold">INSTALLMENTS</td><td width="2%" style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td><td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">APARNA CONSTRUCTIONS AND ESTATES PRIVATE LIMITED</td></tr>
+        <tr><td style="border: 1px solid rgb(0, 0, 0)">2)</td><td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">MAINTENANCE CHARGES</td><td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td><td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">APARNA PROPERTY MANAGEMENT SERVICES PVT. LTD</td></tr>
+        <tr><td style="border: 1px solid rgb(0, 0, 0)">3)</td><td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">CORPUS FUND &amp; NON-REFUNDABLE DEPOSIT</td><td style="border: 1px solid rgb(0, 0, 0); text-align: center">:</td><td style="border: 1px solid rgb(0, 0, 0); font-weight: bold">APARNA SYNERGY OWNERS WELFARE SOCIETY</td></tr>
+      </tbody></table>
+    </td>
+  </tr>
+
+  
+  <tr>
+    <td colspan="3" style="border: 1px solid rgb(0, 0, 0); text-align: right; padding: 6px">
+      <span style="font-weight: bold">I/We accept the above terms and conditions</span>
+    </td>
+  </tr>
+
+  
+  <tr>
+    <td colspan="3" style="padding: 0; border: none">
+      <table width="100%" cellpadding="18" cellspacing="0" style="border-collapse: collapse; font-size: 11px">
+        <tbody><tr style="font-weight: bold">
+          <td width="25%" style="border-top: 1px solid rgb(0, 0, 0); text-align: center">Prepared by</td>
+          <td width="25%" style="border-top: 1px solid rgb(0, 0, 0); text-align: center">Authorized by</td>
+          <td width="25%" style="border-top: 1px solid rgb(0, 0, 0); text-align: center">Approved by</td>
+          <td width="25%" style="border-top: 1px solid rgb(0, 0, 0); text-align: center">Customer/(s) Signature</td>
+        </tr>
+      </tbody></table>
+    </td>
+  </tr>
+</tbody></table></div></body></html>
