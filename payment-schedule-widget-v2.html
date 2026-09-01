@@ -364,18 +364,17 @@ function init(entityId) {
         page: 1,
         per_page: 1
       }).then(function (quoteResp) {
-        const quotes = quoteResp.data;
-        if (!quotes || !quotes.length) {
-          showError("This Lead has no linked Quote yet — the payment schedule needs a Quote with a Unit line item.");
-          return;
-        }
-        const productDetails = quotes[0].Product_Details;
-        if (!productDetails || !productDetails.length || !productDetails[0].product) {
-          showError("The linked Quote has no product line item — add the Unit to the Quote's Product Details.");
-          return;
-        }
-        const unitId = productDetails[0].product.id;
-
+        // const quotes = quoteResp.data;
+        // if (!quotes || !quotes.length) {
+        //   showError("This Lead has no linked Quote yet — the payment schedule needs a Quote with a Unit line item.");
+        //   return;
+        // }
+        // const productDetails = quotes[0].Product_Details;
+        // if (!productDetails || !productDetails.length || !productDetails[0].product) {
+        //   showError("The linked Quote has no product line item — add the Unit to the Quote's Product Details.");
+        //   return;
+        // }
+        const unitId = 1363091000002352313;
         ZOHO.CRM.API.getRecord({ Entity: CONFIG.unitModuleApiName, RecordID: unitId })
           .then(function (unitResp) {
             const unitData = unitResp.data[0];
