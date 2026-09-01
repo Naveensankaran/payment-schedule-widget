@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Schedule</title>
+<script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; margin: 0; padding: 10px; }
+  #status { padding: 20px; text-align: center; color: #555; }
+  #error { padding: 16px; background: #fdecea; color: #b71c1c; border: 1px solid #f5c6cb; border-radius: 4px; margin: 10px 0; display: none; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
+  td, th { border: 1px solid #000; padding: 4px; }
+  .center { text-align: center; }
+  .right { text-align: right; }
+  .bold { font-weight: bold; }
+  .section-title { text-align: center; padding: 6px 0; font-weight: bold; background: #f0f0f0; }
+  .grand-total { border-top: 3px double #000; border-bottom: 3px double #000; text-align: center; padding: 8px 4px; font-size: 13px; font-weight: bold; }
+  #printBtn { margin-bottom: 10px; padding: 6px 14px; cursor: pointer; }
+  @media print { #printBtn { display: none; } }
+</style>
+</head>
+<body>
+
+<div id="status">Loading payment schedule…</div>
+<div id="error"></div>
+<button id="printBtn" style="display:none" onclick="window.print()">Print</button>
+<div id="content"></div>
+
+<script>
+// ============================================================
+// CONFIG — sourced from your working Deluge function.
+// Still worth spot-checking RelatedListApiName against Setup >
+// Developer Hub > APIs and SDKs if this ever stops finding a Quote.
+// ============================================================
+const CONFIG = {
+  quoteRelatedListApiName: "Related_List_Label_1", // the related-list API name your Deluge function used to fetch Quotes off the Lead
+  unitModuleApiName: "Products",
+
+  leadFields: {
+    name: "Full_Name",
+    phone: "Phone",
+    phone2: "Secondary_Phone",
+    email: "Email",
+    email2: "Secondary_Email",
+    bookingDate: "Booking_Date"
+  },
+
+  // Unit/Products module fields
+  unitFields: {
+    tower: "Tower",                          // lookup -> .name
+    floor: "Floor",                          // lookup -> .name
+    uds: "Uds",
+    parkingCount: "Parking_Count",
+    facingDirection: "Unit_Facing_Direction",
+    unitConfigName: "Unit_Configuration_Name",
+    bathrooms: "Bathrooms",
+    apartmentNo: "Name",
+    saleable: "Saleable",                          // built-up area
+    differentialBuiltUpArea: "Differential_Built_Up_Area",
+    baseRate: "Base_Rate",                         // rate/sqft, applies to Saleable
+    differentialRatePerSqft: "Differential_Rate_Per_Sqft", // rate/sqft, applies to differential area
+    floorRise: "Floor_Rise",                       // rate/sqft, applies to total saleable area
+    facingChargeRate: "Facing_Charge_Rate",        // rate/sqft
+    cornerFacingCharges: "Corner_Facing_Charges",  // rate/sqft
+    viewFacingCharges: "View_Facing_Charges",      // rate/sqft
+    chargesForShifting: "Charges_For_Shifting",    // rate/sqft
+    amenitiesPriceSft: "Amenities_Price_Sft",      // rate/sqft
+    gasPipelineCharge: "Gas_Pipeline_Charge"       // flat amount, not multiplied by area
+  },
+
+  policy: {
+    tdsRate: 0.01,
+    gstRate: 0.05,
+    legalDocCharges: 25000,
+    legalDocGstRate: 0.18,
+    maintenanceRatePerSqft: 96,
+    maintenanceGstRate: 0.18,
+    corpusFund: 100000,
+    nonRefundableDeposit: 20000,
+    refundableDeposit: 30000
+  },
+
+  schedulePercents: [0.10, 0.073, 0.073, 0.073, 0.073, 0.073, 0.073, 0.073, 0.073, 0.266, 0.05],
+  scheduleDescriptions: [
+    "Booking Advance of 10% of Unit Value - Payable within 15 days from the date of Booking (for execution of AOS)",
+    "1st Instalment irrespective of Self / Bank Funding",
+    "2nd Instalment irrespective of Self / Bank Funding",
+    "3rd Instalment irrespective of Self / Bank Funding",
+    "4th Instalment irrespective of Self / Bank Funding",
+    "5th Instalment irrespective of Self / Bank Funding",
+    "6th Instalment irrespective of Self / Bank Funding",
+    "7th Instalment irrespective of Self / Bank Funding",
+    "8th Instalment irrespective of Self / Bank Funding",
+    "9th Instalment irrespective of Self / Bank Funding",
+    "Handing Over of respective Apartment"
+  ]
+};
+
+function fmt(n) {
+  if (n === null || n === undefined || isNaN(n)) return "";
+  return Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtDate(d) {
+  if (!(d instanceof Date) || isNaN(d)) return "";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${dd}-${months[d.getMonth()]}-${d.getFullYear()}`;
+}
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+function showError(msg) {
+  document.getElementById("status").style.display = "none";
+  const el = document.getElementById("error");
+  el.style.display = "block";
+  el.textContent = msg;
+}
+
+// ---- Payment schedule rows + dates, mirroring the Deluge date logic:
+// row1 = booking date; row2 = booking date + 35; each following row
+// = previous row's date + 30; final row (handover) = fixed 31-Mar-2027 ----
+function computeSchedule(allInclusivePrice, bookingDate) {
+  const { tdsRate, gstRate } = CONFIG.policy;
+  const rows = [];
+  const totals = { amt: 0, tds: 0, dev: 0, gst: 0, pay: 0 };
+  let dt = bookingDate ? new Date(bookingDate) : new Date();
+
+  CONFIG.schedulePercents.forEach((pct, i) => {
+    let rowDate;
+    if (i === 0) {
+      rowDate = dt;
+    } else if (i === 1) {
+      rowDate = addDays(dt, 35);
+      dt = rowDate;
+    } else if (i === 10) {
+      rowDate = new Date("2027-03-31");
+    } else {
+      rowDate = addDays(dt, 30);
+      dt = rowDate;
+    }
+
+    const amt = allInclusivePrice * pct;
+    const tds = amt * tdsRate;
+    const dev = amt - tds;
+    const gst = amt * gstRate;
+    const pay = dev + gst;
+    totals.amt += amt; totals.tds += tds; totals.dev += dev; totals.gst += gst; totals.pay += pay;
+
+    rows.push({
+      no: i + 1,
+      desc: CONFIG.scheduleDescriptions[i],
+      pct, date: rowDate,
+      amt, tds, dev, gst, pay,
+      bold: i === 10
+    });
+  });
+
+  return { rows, totals };
+}
+
+function pctLabel(p) {
+  const v = p * 100;
+  return (Number.isInteger(v) ? v : v.toFixed(1)) + "%";
+}
+
+function render(leadData, unitData) {
+  const uf = CONFIG.unitFields;
+  const lf = CONFIG.leadFields;
+  const pol = CONFIG.policy;
+
+  const saleable = parseFloat(unitData[uf.saleable]) || 0;
+  const diffArea = parseFloat(unitData[uf.differentialBuiltUpArea]) || 0;
+  const totalSaleableArea = saleable + diffArea;
+
+  const baseRate = parseFloat(unitData[uf.baseRate]) || 0;
+  const diffRate = parseFloat(unitData[uf.differentialRatePerSqft]) || 0;
+  const floorRiseRate = parseFloat(unitData[uf.floorRise]) || 0;
+  const facingRate = parseFloat(unitData[uf.facingChargeRate]) || 0;
+  const cornerRate = parseFloat(unitData[uf.cornerFacingCharges]) || 0;
+  const viewRate = parseFloat(unitData[uf.viewFacingCharges]) || 0;
+  const shiftingRate = parseFloat(unitData[uf.chargesForShifting]) || 0;
+  const amenitiesRate = parseFloat(unitData[uf.amenitiesPriceSft]) || 0;
+  const gasPipeline = parseFloat(unitData[uf.gasPipelineCharge]) || 0;
+
+  const basicPriceBuiltUp = saleable * baseRate;
+  const basicPriceDiff = diffRate * diffArea;
+  const floorRiseCharge = floorRiseRate * totalSaleableArea;
+  const facingCharge = facingRate * totalSaleableArea;
+  const cornerCharge = cornerRate * totalSaleableArea;
+  const viewCharge = viewRate * totalSaleableArea;
+  const shiftingCharge = shiftingRate * totalSaleableArea;
+  const amenitiesCharge = amenitiesRate * totalSaleableArea;
+
+  const basicUnitValue = basicPriceBuiltUp + basicPriceDiff + floorRiseCharge + facingCharge + cornerCharge + viewCharge + shiftingCharge;
+  const allInclusivePrice = basicUnitValue + amenitiesCharge + gasPipeline;
+
+  const towerObj = unitData[uf.tower];
+  const floorObj = unitData[uf.floor];
+  const block = towerObj && towerObj.name ? towerObj.name : "";
+  const floor = floorObj && floorObj.name ? floorObj.name : "";
+  const type = (unitData[uf.unitConfigName] || "") + " " + (unitData[uf.bathrooms] || "") + " TOI";
+
+  const bookingDate = leadData[lf.bookingDate];
+  const { rows, totals } = computeSchedule(allInclusivePrice, bookingDate);
+
+  const legalAmt = pol.legalDocCharges;
+  const legalGst = legalAmt * pol.legalDocGstRate;
+  const legalTotal = legalAmt + legalGst;
+
+  const maintAmt = totalSaleableArea * pol.maintenanceRatePerSqft;
+  const maintGst = maintAmt * pol.maintenanceGstRate;
+  const maintTotal = maintAmt + maintGst;
+  const totalCAmt = maintAmt + pol.corpusFund + pol.nonRefundableDeposit + pol.refundableDeposit;
+  const totalCGst = maintGst;
+  const totalC = totalCAmt + totalCGst;
+
+  const grandTotal = totals.pay + totals.tds + legalTotal + totalC;
+
+  const rowsHtml = rows.map(r => `
+    <tr>
+      <td class="center">${r.no}</td>
+      <td>${fmtDate(r.date)}</td>
+      <td${r.bold ? ' class="bold"' : ''}>${r.desc}</td>
+      <td class="center">${pctLabel(r.pct)}</td>
+      <td class="right">${fmt(r.amt)}</td>
+      <td class="center">1%</td>
+      <td class="right">${fmt(r.tds)}</td>
+      <td class="right">${fmt(r.dev)}</td>
+      <td class="center">5%</td>
+      <td class="right">${fmt(r.gst)}</td>
+      <td class="right">${fmt(r.pay)}</td>
+    </tr>`).join("");
+
+  const html = `
+    <table>
+      <tr>
+        <td style="width:34%"><b>NAME</b>: ${leadData[lf.name] || ""}</td>
+        <td style="width:33%"><b>BOOKING DATE</b>: ${fmtDate(new Date(bookingDate))}</td>
+        <td style="width:33%"><b>Apartment No.</b>: ${unitData[uf.apartmentNo] || ""} (${block}, Floor ${floor})</td>
+      </tr>
+      <tr>
+        <td><b>PHONE</b>: ${leadData[lf.phone] || ""}</td>
+        <td><b>EMAIL</b>: ${leadData[lf.email] || ""}</td>
+        <td><b>Type</b>: ${type}</td>
+      </tr>
+      <tr>
+        <td><b>Built-up Area</b>: ${fmt(saleable)}</td>
+        <td><b>Differential Area</b>: ${fmt(diffArea)}</td>
+        <td><b>Total Saleable Area</b>: ${fmt(totalSaleableArea)}</td>
+      </tr>
+      <tr>
+        <td colspan="2"><b>BASIC UNIT VALUE</b>: Rs. ${fmt(basicUnitValue)}</td>
+        <td><b>TOTAL UNIT VALUE (Incl. Amenities &amp; Gas)</b>: Rs. ${fmt(allInclusivePrice)}</td>
+      </tr>
+    </table>
+
+    <div class="section-title" style="font-size:16px">PAYMENT SCHEDULE</div>
+    <table>
+      <tr class="bold center">
+        <td>S.No</td><td>DATE</td><td>Description of Payments</td><td>UV %</td>
+        <td>Instalment Amount Payable</td><td>TDS</td>
+        <td>TDS to be Remitted through Traces of Purchaser(s)</td>
+        <td>Amount payable to Developer (excl. TDS)</td><td>GST %</td>
+        <td>GST Amount Payable to Developer on each instalment</td>
+        <td>Instalment Amount payable to Developer (incl. GST, excl. TDS)</td>
+      </tr>
+      ${rowsHtml}
+      <tr class="bold center">
+        <td colspan="3">TOTAL - A</td>
+        <td>100%</td>
+        <td class="right">${fmt(totals.amt)}</td>
+        <td></td>
+        <td class="right">${fmt(totals.tds)}</td>
+        <td class="right">${fmt(totals.dev)}</td>
+        <td></td>
+        <td class="right">${fmt(totals.gst)}</td>
+        <td class="right">${fmt(totals.pay)}</td>
+      </tr>
+    </table>
+
+    <div class="section-title">AMOUNT PAYABLE AT THE TIME OF REGISTRATION OF APARTMENT</div>
+    <table>
+      <tr>
+        <td class="center" style="width:6%">12</td>
+        <td style="width:50%">Legal and Documentation Charges</td>
+        <td class="right" style="width:14%">${fmt(legalAmt)}</td>
+        <td class="center" style="width:8%">18%</td>
+        <td class="right" style="width:10%">${fmt(legalGst)}</td>
+        <td class="right bold" style="width:12%">${fmt(legalTotal)}</td>
+      </tr>
+      <tr class="bold">
+        <td colspan="5">TOTAL - B (Excluding Registration / Stamp Duty &amp; Mutation Charges)</td>
+        <td class="right">${fmt(legalTotal)}</td>
+      </tr>
+    </table>
+
+    <div class="section-title">AMOUNTS PAYABLE AT THE TIME OF HANDING OVER OF APARTMENT</div>
+    <table>
+      <tr class="bold center">
+        <td style="width:6%">Sl.No</td><td style="width:50%">Particulars</td>
+        <td style="width:14%">Amount Payable</td><td style="width:8%">GST %</td>
+        <td style="width:10%">GST Amount</td><td style="width:12%">Amount Payable incl. GST</td>
+      </tr>
+      <tr>
+        <td class="center">13</td>
+        <td>Maintenance for 2 years @ Rs. 96/- per Sq.ft &amp; GST @ 18%</td>
+        <td class="right">${fmt(maintAmt)}</td>
+        <td class="center">18%</td>
+        <td class="right">${fmt(maintGst)}</td>
+        <td class="right">${fmt(maintTotal)}</td>
+      </tr>
+      <tr>
+        <td class="center">14</td><td>Corpus Fund</td>
+        <td class="right">${fmt(pol.corpusFund)}</td>
+        <td class="center">-</td><td class="right">-</td>
+        <td class="right">${fmt(pol.corpusFund)}</td>
+      </tr>
+      <tr>
+        <td class="center">15</td><td>Non-refundable Caution Deposit</td>
+        <td class="right">${fmt(pol.nonRefundableDeposit)}</td>
+        <td class="center">-</td><td class="right">-</td>
+        <td class="right">${fmt(pol.nonRefundableDeposit)}</td>
+      </tr>
+      <tr>
+        <td class="center">16</td><td>Refundable Caution Deposit</td>
+        <td class="right">${fmt(pol.refundableDeposit)}</td>
+        <td class="center">-</td><td class="right">-</td>
+        <td class="right">${fmt(pol.refundableDeposit)}</td>
+      </tr>
+      <tr class="bold center">
+        <td colspan="2">TOTAL - C</td>
+        <td class="right">${fmt(totalCAmt)}</td>
+        <td></td>
+        <td class="right">${fmt(totalCGst)}</td>
+        <td class="right">${fmt(totalC)}</td>
+      </tr>
+    </table>
+
+    <div class="grand-total">
+      GRAND TOTAL (A + B + C) — Including TDS / Excluding Registration, Stamp Duty &amp; Mutation Charges&nbsp;:&nbsp;
+      Rs. ${fmt(grandTotal)}
+    </div>
+  `;
+
+  document.getElementById("content").innerHTML = html;
+  document.getElementById("status").style.display = "none";
+  document.getElementById("printBtn").style.display = "inline-block";
+}
+
+function init(entityId) {
+  ZOHO.CRM.API.getRecord({ Entity: "Leads", RecordID: entityId })
+    .then(function (leadResp) {
+      const leadData = leadResp.data[0];
+
+      // Unit comes from the Lead's related Quote -> Product_Details -> product lookup
+      ZOHO.CRM.API.getRelatedRecords({
+        Entity: "Leads",
+        RecordID: entityId,
+        RelatedList: CONFIG.quoteRelatedListApiName,
+        page: 1,
+        per_page: 1
+      }).then(function (quoteResp) {
+        const quotes = quoteResp.data;
+        if (!quotes || !quotes.length) {
+          showError("This Lead has no linked Quote yet — the payment schedule needs a Quote with a Unit line item.");
+          return;
+        }
+        const productDetails = quotes[0].Product_Details;
+        if (!productDetails || !productDetails.length || !productDetails[0].product) {
+          showError("The linked Quote has no product line item — add the Unit to the Quote's Product Details.");
+          return;
+        }
+        const unitId = productDetails[0].product.id;
+
+        ZOHO.CRM.API.getRecord({ Entity: CONFIG.unitModuleApiName, RecordID: unitId })
+          .then(function (unitResp) {
+            const unitData = unitResp.data[0];
+            try {
+              render(leadData, unitData);
+            } catch (e) {
+              showError("Error rendering schedule — check CONFIG field names match your org. (" + e.message + ")");
+            }
+          })
+          .catch(function (err) {
+            showError("Could not fetch the Unit record. (" + JSON.stringify(err) + ")");
+          });
+      }).catch(function (err) {
+        showError("Could not fetch related Quotes — check CONFIG.quoteRelatedListApiName. (" + JSON.stringify(err) + ")");
+      });
+    })
+    .catch(function (err) {
+      showError("Could not fetch the Lead record. (" + JSON.stringify(err) + ")");
+    });
+}
+
+ZOHO.embeddedApp.on("PageLoad", function (data) {
+  const entityId = data.EntityId;
+  if (!entityId) {
+    showError("No record context found — this widget must run inside a Lead's related list.");
+    return;
+  }
+  init(entityId);
+});
+
+ZOHO.embeddedApp.init();
+</script>
+</body>
+</html>
