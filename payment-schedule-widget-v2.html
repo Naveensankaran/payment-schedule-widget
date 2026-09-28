@@ -433,7 +433,7 @@ async function sendCostSheet() {
     alert("Cost sheet sent to " + c.email);
   } catch (e) {
     console.error(e);
-    alert("Could not send email: " + JSON.stringify(e));
+    alert("Could not send email: " + (e && e.message ? e.message : JSON.stringify(e)));
   } finally {
     btn.disabled = false;
     btn.textContent = "Email to customer";
