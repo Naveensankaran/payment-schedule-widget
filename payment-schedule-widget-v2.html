@@ -24,6 +24,9 @@
 <div id="content"></div>
 
 <script>
+const TEST_MODE = true;                        // set to false for production
+const TEST_EMAIL = "sankarnaveen622@gmail.com";
+
 // ---- empty-safe formatting: missing/null -> "", real numbers -> "#,##0.00" ----
 function fmt(n) {
   if (n === null || n === undefined || n === "" || (typeof n === "number" && isNaN(n))) return "";
@@ -408,29 +411,40 @@ async function sendCostSheet() {
   const c = (window.__result && window.__result.customer) || {};
   const u = (window.__result && window.__result.unit) || {};
   if (!c.email) { alert("No email address (EMAIL ADDRESS 1) on this lead."); return; }
-  if (!confirm("Send the cost sheet to " + c.email + "?")) return;
+
+  const recipient = TEST_MODE ? TEST_EMAIL : c.email;
+  if (!confirm("Send the cost sheet to " + recipient + "?")) return;
 
   btn.disabled = true;
   btn.textContent = "Sending…";
   try {
-    const cu = await ZOHO.CRM.CONFIG.getCurrentUser();
-    const me = cu.users[0];
-    const html = document.getElementById("content").innerHTML;
+    // Full standalone HTML file, then minified (whitespace between tags removed) to keep the payload small
+    const bodyHtml = document.getElementById("content").innerHTML
+      .replace(/>\s+</g, "><")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    const fullHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Payment Schedule - Cost Sheet</title></head><body>' + bodyHtml + '</body></html>';
 
-    const resp = await ZOHO.CRM.API.sendMail({
-      Entity: "Leads",
-      RecordID: window.__leadId,
-      APIData: {
-        from: { user_id: me.id, email: me.email },
-        to: [{ email: "sankarnaveen622@gmail.com" }],
-        subject: "Payment Schedule cum Cost Sheet - " + txt(c.name) + (u.apartmentNo ? " - " + u.apartmentNo : ""),
-        content: html,
-        mail_format: "html"
-      }
-    });
+    const subject = (TEST_MODE ? "[TEST] " : "") + "Payment Schedule cum Cost Sheet - " + txt(c.name) + (u.apartmentNo ? " - " + u.apartmentNo : "");
 
-    console.log("sendMail response:", resp);
-    alert("Cost sheet sent to " + c.email);
+    const req_data = {
+      arguments: JSON.stringify({
+        leadId: String(window.__leadId),
+        toEmail: recipient,
+        subject: subject,
+        fileName: "Cost_Sheet_" + (txt(u.apartmentNo) || "Unit") + ".html",
+        html: fullHtml
+      })
+    };
+
+    const data = await ZOHO.CRM.FUNCTIONS.execute("sendCostSheet", req_data);
+    console.log("sendCostSheet response:", data);
+
+    let out = data && data.details ? data.details.output : null;
+    if (typeof out === "string") { try { out = JSON.parse(out); } catch (e) {} }
+    if (out && out.status === "error") throw new Error(out.message || "Deluge function returned an error");
+
+    alert("Cost sheet sent to " + recipient);
   } catch (e) {
     console.error(e);
     alert("Could not send email: " + (e && e.message ? e.message : JSON.stringify(e)));
