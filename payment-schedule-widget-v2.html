@@ -431,14 +431,14 @@ async function sendCostSheet() {
       arguments: JSON.stringify({
         leadId: String(window.__leadId),
         toEmail: recipient,
-        subject: subject,
+        subjects: subject,
         fileName: "Cost_Sheet_" + (txt(u.apartmentNo) || "Unit") + ".html",
         html: fullHtml
       })
     };
 
-    const data = await ZOHO.CRM.FUNCTIONS.execute("sendCostSheet", req_data);
-    console.log("sendCostSheet response:", data);
+    const data = await ZOHO.CRM.FUNCTIONS.execute("quotstest", req_data);
+    console.log("quotstest response:", data);
 
     let out = data && data.details ? data.details.output : null;
     if (typeof out === "string") { try { out = JSON.parse(out); } catch (e) {} }
