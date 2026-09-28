@@ -11,7 +11,8 @@
   #status { padding: 20px; text-align: center; color: #555; }
   #error { padding: 16px; background: #fdecea; color: #b71c1c; border: 1px solid #f5c6cb; border-radius: 4px; margin: 10px 0; display: none; }
   #printBtn { margin-bottom: 10px; padding: 6px 14px; cursor: pointer; }
-  @media print { #printBtn { display: none; } }
+  @media print { #printBtn, #mailBtn { display: none; } }
+  #mailBtn { margin-bottom: 10px; margin-left: 6px; padding: 6px 14px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -19,6 +20,7 @@
 <div id="status">Loading payment schedule…</div>
 <div id="error"></div>
 <button id="printBtn" style="display:none" onclick="window.print()">Print</button>
+<button id="mailBtn" style="display:none" onclick="sendCostSheet()">Email to customer</button>
 <div id="content"></div>
 
 <script>
@@ -65,7 +67,7 @@ function render(result) {
 
   const html = `
   <div style="font-family: Verdana, Arial, Helvetica, sans-serif">
-  <table width="1000" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; border: 1px solid #000; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; margin: 0 auto">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:1000px; border-collapse: collapse; border: 1px solid #000; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; margin: 0 auto">
   <tbody>
     <tr>
       <td width="150" rowspan="2" style="text-align:center;border:1px solid #000;padding:4px;vertical-align:middle">
@@ -397,6 +399,45 @@ function render(result) {
   document.getElementById("content").innerHTML = html;
   document.getElementById("status").style.display = "none";
   document.getElementById("printBtn").style.display = "inline-block";
+  window.__result = result;
+  document.getElementById("mailBtn").style.display = "inline-block";
+}
+
+async function sendCostSheet() {
+  const btn = document.getElementById("mailBtn");
+  const c = (window.__result && window.__result.customer) || {};
+  const u = (window.__result && window.__result.unit) || {};
+  if (!c.email) { alert("No email address (EMAIL ADDRESS 1) on this lead."); return; }
+  if (!confirm("Send the cost sheet to " + c.email + "?")) return;
+
+  btn.disabled = true;
+  btn.textContent = "Sending…";
+  try {
+    const cu = await ZOHO.CRM.CONFIG.getCurrentUser();
+    const me = cu.users[0];
+    const html = document.getElementById("content").innerHTML;
+
+    const resp = await ZOHO.CRM.API.sendMail({
+      Entity: "Leads",
+      RecordID: window.__leadId,
+      APIData: {
+        from: { user_id: me.id, email: me.email },
+        to: [{ email: "sankarnaveen622@gmail.com" }],
+        subject: "Payment Schedule cum Cost Sheet - " + txt(c.name) + (u.apartmentNo ? " - " + u.apartmentNo : ""),
+        content: html,
+        mail_format: "html"
+      }
+    });
+
+    console.log("sendMail response:", resp);
+    alert("Cost sheet sent to " + c.email);
+  } catch (e) {
+    console.error(e);
+    alert("Could not send email: " + JSON.stringify(e));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Email to customer";
+  }
 }
 
 function init(entityId) {
@@ -436,6 +477,7 @@ ZOHO.embeddedApp.on("PageLoad", function (data) {
     showError("No record context found — this widget must run inside a Lead's related list.");
     return;
   }
+  window.__leadId = entityId;
   init(entityId);
 });
 
