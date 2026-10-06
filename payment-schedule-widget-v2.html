@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Payment Schedule - cum - Cost Sheet</title>
+<title>Cost Estimate</title>
 <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 11px; color: #000; margin: 0; padding: 10px; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; margin: 0; padding: 10px; }
   #status { padding: 20px; text-align: center; color: #555; }
   #error { padding: 16px; background: #fdecea; color: #b71c1c; border: 1px solid #f5c6cb; border-radius: 4px; margin: 10px 0; display: none; }
   #printBtn { margin-bottom: 10px; padding: 6px 14px; cursor: pointer; }
-  @media print { #printBtn, #mailBtn { display: none; } }
   #mailBtn { margin-bottom: 10px; margin-left: 6px; padding: 6px 14px; cursor: pointer; }
+  @media print { #printBtn, #mailBtn { display: none; } }
 </style>
 </head>
 <body>
 
-<div id="status">Loading payment schedule…</div>
+<div id="status">Loading cost estimate…</div>
 <div id="error"></div>
 <button id="printBtn" style="display:none" onclick="window.print()">Print</button>
 <button id="mailBtn" style="display:none" onclick="sendCostSheet()">Email to customer</button>
@@ -27,13 +27,31 @@
 const TEST_MODE = true;                        // set to false for production
 const TEST_EMAIL = "sankarnaveen622@gmail.com";
 
-// ---- empty-safe formatting: missing/null -> "", real numbers -> "#,##0.00" ----
-function fmt(n) {
-  if (n === null || n === undefined || n === "" || (typeof n === "number" && isNaN(n))) return "";
-  return Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// ---- empty-safe helpers ----
+function isEmpty(n) { return n === null || n === undefined || n === "" || (typeof n === "number" && isNaN(n)); }
+function txt(v) { return (v === null || v === undefined) ? "" : v; }
+function num(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
+// Amounts follow the sheet format: whole numbers, zero shown as "-", empty stays empty
+function amt(n) {
+  if (isEmpty(n)) return "";
+  const v = Number(n);
+  if (v === 0) return "-";
+  return v.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
-function txt(v) {
-  return (v === null || v === undefined) ? "" : v;
+// Rates / areas: up to 2 decimals, no forced trailing zeros
+function dec(n) {
+  if (isEmpty(n)) return "";
+  return Number(n).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+function rate(amount, area) {
+  const a = num(area);
+  if (a <= 0 || isEmpty(amount)) return "";
+  return num(amount) / a;
+}
+function todayStr() {
+  const d = new Date();
+  const p = x => String(x).padStart(2, "0");
+  return p(d.getDate()) + "-" + p(d.getMonth() + 1) + "-" + d.getFullYear();
 }
 function showError(msg) {
   document.getElementById("status").style.display = "none";
@@ -42,362 +60,167 @@ function showError(msg) {
   el.textContent = msg;
 }
 
-function buildRowsHtml(rows) {
-  if (!rows || rows.length === 0) return "";
-  return rows.map(r => `
-    <tr>
-      <td style="border:1px solid #000;text-align:center">${txt(r.no)}</td>
-      <td style="border:1px solid #000">${txt(r.date)}</td>
-      <td style="border:1px solid #000${r.no === 11 ? ';font-weight:bold' : ''}">${txt(r.desc)}</td>
-      <td style="border:1px solid #000;text-align:center">${r.uvPercent !== undefined && r.uvPercent !== null ? r.uvPercent + "%" : ""}</td>
-      <td style="border:1px solid #000;text-align:right">${fmt(r.amount)}</td>
-      <td style="border:1px solid #000;text-align:center">${r.tdsPercent !== undefined && r.tdsPercent !== null ? r.tdsPercent + "%" : ""}</td>
-      <td style="border:1px solid #000;text-align:right">${fmt(r.tdsAmount)}</td>
-      <td style="border:1px solid #000;text-align:right">${fmt(r.developerAmount)}</td>
-      <td style="border:1px solid #000;text-align:center">${r.gstPercent !== undefined && r.gstPercent !== null ? r.gstPercent + "%" : ""}</td>
-      <td style="border:1px solid #000;text-align:right">${fmt(r.gstAmount)}</td>
-      <td style="border:1px solid #000;text-align:right">${fmt(r.payableAmount)}</td>
-    </tr>`).join("");
+const B = "border:1px solid #000;";
+const TERMS = [
+  "The Price / Cost Estimate provided herein is subject to change without prior notice. The price prevailing on the date of booking shall be final.",
+  "GST is Applicable on Cost of Apartment including Amenities, Maintenance Charges & other Charges as applicable.",
+  "GST, Taxes and other levies shall be levied as per the rules / laws of respective acts which are as applicable and amended from time to time",
+  "The Purchaser(s)/Allottee(s) is solely responsible for deduction of TDS @ 1% (subject to change as per the IT Act, 2025) on each instalment receivable by us.",
+  "Registration shall commence only on clearance of total 100% of the Cost of the Apartment including all other charges as the case maybe.",
+  "Registration, Stamp Duty, Mutation and other charges / levies are subject to changes as per the provisions of registrations act prevailing at the time of registration.",
+  "The Payment by way of Debit / Credit Card Swipping for clearance of Token Advance is restricted to Rs.2,00,000/- (Rupees Two Lakhs only) and no Bank Charges shall be recovered up for the payments up to Rs.2,00,000/- (Rupees Two Lakhs only). Bank Charges will be applicable and recovered for payments over and above the payment of Rs.2,00,000/- (Rupees Two Lakhs only).",
+  "Bank Charges for realization of Out station cheques & Cheque return charges will be debited and recovered from the purchaser's account. International Cheques are not accepted.",
+  "Other terms and conditions shall apply as per the Booking Application form and Agreement of Sale.",
+  "The Promoter/Developer reserves the right and at its discretion may accept or reject this Booking Application Form from the Applicant(s) without providing any reasons of rejection with mere notice of intimation for rejection."
+];
+
+// section heading row
+function head(label, color) {
+  return `<tr><td colspan="4" style="${B}text-align:center;font-weight:bold;padding:5px;${color ? "color:" + color + ";" : ""}">${label}</td></tr>`;
+}
+// label | rate | : | amount
+function line(label, rateVal, value, opts) {
+  opts = opts || {};
+  return `<tr>
+    <td style="${B}padding:4px 6px">${label}</td>
+    <td style="${B}width:14%;text-align:right;padding:4px 6px">${rateVal}</td>
+    <td style="${B}width:3%;text-align:center">:</td>
+    <td style="${B}width:20%;text-align:right;padding:4px 6px">${value}</td>
+  </tr>`;
+}
+// bold, centered total row
+function total(label, value, color) {
+  const c = color ? "color:" + color + ";" : "";
+  return `<tr style="font-weight:bold">
+    <td colspan="2" style="${B}text-align:center;padding:5px;${c}">${label}</td>
+    <td style="${B}text-align:center">:</td>
+    <td style="${B}text-align:right;padding:4px 6px;${c}">${value}</td>
+  </tr>`;
 }
 
 function render(result) {
-  const c = result.customer || {};
   const u = result.unit || {};
-  const rows = result.rows || [];
-  const tA = result.totalsA || {};
   const b = result.sectionB || {};
   const cc = result.sectionC || {};
 
+  const builtUp = num(u.builtUpArea);
+  const diffArea = num(u.diffBuiltUpArea);
+  const totalArea = !isEmpty(u.totalSaleableArea) ? num(u.totalSaleableArea) : builtUp + diffArea;
+
+  // --- Section A: unit value. GST on unit value is intentionally left empty. ---
+  const unitValue = !isEmpty(u.totalUnitValue)
+    ? num(u.totalUnitValue)
+    : num(u.basicUnitValue) + num(u.amenitiesCharge) + num(u.gasPipeline);
+  const gstOnUnit = null;                              // left empty
+  const totalA = unitValue + num(gstOnUnit);
+
+  // --- Section B: other charges (all incl. GST) ---
+  const legal = num(b.total);
+  const maintenance = num(cc.maintenanceTotal);
+  const corpus = num(cc.corpus);
+  const refDep = num(cc.refDeposit);
+  const nonRefDep = num(cc.nonRefDeposit);
+  const totalB = legal + maintenance + corpus + refDep + nonRefDep;
+  const grand = totalA + totalB;
+
+  const termsHtml = TERMS.map((t, i) => `
+    <tr>
+      <td style="${B}width:5%;text-align:center;padding:4px">${i + 1}</td>
+      <td style="${B}padding:4px 6px">${t}</td>
+    </tr>`).join("");
+
   const html = `
-  <div style="font-family: Verdana, Arial, Helvetica, sans-serif">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:1000px; border-collapse: collapse; border: 1px solid #000; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; margin: 0 auto">
-  <tbody>
-    <tr>
-      <td width="150" rowspan="2" style="text-align:center;border:1px solid #000;padding:4px;vertical-align:middle">
-        <img src="https://crm.zoho.in/crm/viewInLineImage?fileContent=465d895f2e71cfd024d63e322069278077ac5bbf62e1ed65a3c265a401f7b5a1efb50471438ebba1addae5b19af11851e60a2dcfe3c7e43aba4639a7bc872bad77b31af16c2e2f9dfa93d605ebe13c6539024eaffb5cc581874fa1e290ab1a0d" width="164" style="width:164px">
-      </td>
-      <td rowspan="2" style="border:1px solid #000;text-align:center;vertical-align:middle">
-        <span style="font-size:20px;font-weight:bold;color:#3f3f3f">APARNA CONSTRUCTIONS AND ESTATES PRIVATE LIMITED</span>
-      </td>
-      <td width="110" rowspan="2" style="border:1px solid #000;padding:4px;text-align:center;vertical-align:middle">
-        <img src="https://crm.zoho.in/crm/viewInLineImage?fileContent=9d0dc9d2f1b5e275d38b1c5bf76035f5356ba36add5fbcd1e4e182da70ff2ee830643ccd9826bd13aff2296aaccf41024d15433f9623173d3cbca9a17b1931a35b182f6b0bc06e402e80f4237827b48bdb6c60aab76f8eb59431cda16965f0c3" width="178" style="width:178px">
-      </td>
-    </tr>
-    <tr><td style="display:none"></td></tr>
+  <div style="font-family: Arial, Helvetica, sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:900px;border-collapse:collapse;border:1px solid #000;font-size:12px;color:#000;margin:0 auto">
+    <tbody>
+      <tr>
+        <td style="${B}text-align:center;padding:10px">
+          <span style="font-size:18px;font-weight:bold;color:#ff0000">COST ESTIMATE</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="${B}text-align:right;padding:4px 6px">${todayStr()}</td>
+      </tr>
+      <tr>
+        <td style="${B}padding:5px 6px;font-weight:bold;color:#0070c0;font-size:13px">PROJECT&nbsp;&nbsp;&nbsp;&nbsp;${txt(u.project)}</td>
+      </tr>
 
-    <tr>
-      <td colspan="3" style="border:1px solid #000;text-align:center;padding:6px 0">
-        <span style="font-size:15px;font-weight:bold;color:#0070c0">PAYMENT SCHEDULE - CUM - COST SHEET</span>
-      </td>
-    </tr>
-    <tr>
-      <td colspan="3" style="border:1px solid #000;text-align:center;padding:4px 0">
-        <span style="font-size:12px;font-weight:bold;color:#ff0000">PHASE - I (BLOCKS - A, B, C, D, E, F, K, L, M, N &amp; O)</span>
-      </td>
-    </tr>
+      <tr><td style="padding:0;border:none">
+        <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:12px">
+          <tbody>
+            <tr><td colspan="7" style="${B}text-align:center;font-weight:bold">APARTMENT PARTICULARS</td></tr>
+            <tr>
+              <td width="22%" style="${B}">Block</td><td width="3%" style="${B}text-align:center">:</td><td width="25%" style="${B}">${txt(u.block)}</td>
+              <td width="4%" style="border:none"></td>
+              <td width="22%" style="${B}">CAR PARKING(S)</td><td width="3%" style="${B}text-align:center">:</td><td width="21%" style="${B}">${txt(u.parking)}</td>
+            </tr>
+            <tr>
+              <td style="${B}">Floor</td><td style="${B}text-align:center">:</td><td style="${B}">${txt(u.floor)}</td>
+              <td style="border:none"></td>
+              <td style="${B}">Facing</td><td style="${B}text-align:center">:</td><td style="${B}">${txt(u.facing)}</td>
+            </tr>
+            <tr>
+              <td style="${B}">Apartment No.</td><td style="${B}text-align:center">:</td><td style="${B}">${txt(u.apartmentNo)}</td>
+              <td style="border:none"></td>
+              <td style="${B}">Type</td><td style="${B}text-align:center">:</td><td style="${B}">${txt(u.type)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </td></tr>
 
-    <tr><td colspan="3" style="padding:0;border:none">
-      <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:11px">
-        <tbody>
-          <tr>
-            <td width="18%" style="border:1px solid #000;font-weight:bold">DATE OF BOOKING</td>
-            <td width="2%" style="border:1px solid #000;text-align:center">:</td>
-            <td width="30%" style="border:1px solid #000">${txt(c.bookingDate)}</td>
-            <td width="30%" style="border:1px solid #000;text-align:center;font-weight:bold">Built-up Area (in Sq.Ft.)</td>
-            <td width="2%" style="border:1px solid #000;text-align:center">:</td>
-            <td width="18%" style="border:1px solid #000;text-align:right;font-weight:bold">${fmt(u.builtUpArea)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;font-weight:bold">NAME OF THE CUSTOMER</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000">${txt(c.name)}</td>
-            <td style="border:1px solid #000;text-align:center;font-weight:bold">Differential Built-up Area (in Sq.Ft.)</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:right;font-weight:bold">${fmt(u.diffBuiltUpArea)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;font-weight:bold">CONTACT NUMBER (1)</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000">${txt(c.phone)}</td>
-            <td style="border:1px solid #000;text-align:center;font-weight:bold">Total Saleable Built-up Area (in Sq.Ft.)</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:right;font-weight:bold">${fmt(u.totalSaleableArea)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;font-weight:bold">CONTACT NUMBER (2)</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000">${txt(c.phone2)}</td>
-            <td style="border:1px solid #000">Basic Price for Built-up Area</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(u.basicPriceBuiltup)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;font-weight:bold">EMAIL ADDRESS (1)</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000">${txt(c.email)}</td>
-            <td style="border:1px solid #000">Basic Price for Differential Built-up Area</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(u.basicPriceDiff)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;font-weight:bold">EMAIL ADDRESS (2)</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000">${txt(c.email2)}</td>
-            <td style="border:1px solid #000">Charges for Floor Rise</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(u.floorRiseCharge)}</td>
-          </tr>
-          <tr>
-            <td colspan="3" style="border:1px solid #000;text-align:center;font-weight:bold">APARTMENT DETAILS</td>
-            <td style="border:1px solid #000">Charges for Facing</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(u.facingCharge)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;font-weight:bold">Block</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:center">${txt(u.block)}</td>
-            <td style="border:1px solid #000">Charges for Corner Preference</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(u.cornerCharge)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;font-weight:bold">Floor</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:center">${txt(u.floor)}</td>
-            <td style="border:1px solid #000">Charges for View</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(u.viewCharge)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;font-weight:bold">Apartment No.</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:center">${txt(u.apartmentNo)}</td>
-            <td style="border:1px solid #000">Charges for Shifting</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(u.shiftingCharge)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;font-weight:bold">UDS</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:center">${txt(u.uds)}</td>
-            <td style="border:1px solid #000;text-align:center;font-weight:bold">BASIC UNIT VALUE</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:right;font-weight:bold">${fmt(u.basicUnitValue)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;font-weight:bold">CAR PARKING(S)</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:center">${txt(u.parking)}</td>
-            <td style="border:1px solid #000">Charges for Amenities</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(u.amenitiesCharge)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;font-weight:bold">Facing</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:center">${txt(u.facing)}</td>
-            <td colspan="3" style="border:1px solid #000">Charges for Gas Pipe-line Installation&nbsp;:&nbsp;${fmt(u.gasPipeline)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;font-weight:bold">Type</td>
-            <td style="border:1px solid #000;text-align:center">:</td>
-            <td style="border:1px solid #000;text-align:center">${txt(u.type)}</td>
-            <td colspan="3" style="border:1px solid #000;text-align:center;font-weight:bold">
-              TOTAL UNIT VALUE (INCL. AMENITIES &amp; GAS PIPE-LINE)&nbsp;:&nbsp;${u.totalUnitValue !== undefined && u.totalUnitValue !== null ? "Rs." + fmt(u.totalUnitValue) : ""}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </td></tr>
+      <tr><td style="padding:0;border:none">
+        <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:12px">
+          <tbody>
+            ${head("SALEABLE AREA PARTICULARS")}
+            ${line("Built-up Area (in Sq.Ft.)", "", dec(builtUp))}
+            ${line("Differential Built-up Area (in Sq.Ft.)", "", dec(diffArea))}
+            <tr style="font-weight:bold">
+              <td colspan="2" style="${B}text-align:center;padding:5px">TOTAL SALEABLE AREA (IN SQ. FT.)</td>
+              <td style="${B}text-align:center">:</td>
+              <td style="${B}text-align:right;padding:4px 6px">${dec(totalArea)}</td>
+            </tr>
 
-    <tr>
-      <td colspan="3" style="border:1px solid #000;text-align:center;padding:8px 0">
-        <span style="font-size:20px;font-weight:bold">PAYMENT SCHEDULE</span>
-      </td>
-    </tr>
+            ${head("COST ESTIMATE PARTICULARS")}
+            ${line("Basic Price for Built-up Area", dec(rate(u.basicPriceBuiltup, builtUp)), amt(u.basicPriceBuiltup))}
+            ${line("Basic Price for Differential Built-up Area", dec(rate(u.basicPriceDiff, diffArea)), amt(u.basicPriceDiff))}
+            ${line("Charges for Floor Rise", dec(rate(u.floorRiseCharge, totalArea)), amt(u.floorRiseCharge))}
+            ${line("Charges for East / North Facing", dec(rate(u.facingCharge, totalArea)), amt(u.facingCharge))}
+            ${line("Charges for Corner Preference", dec(rate(u.cornerCharge, totalArea)), amt(u.cornerCharge))}
+            ${line("Charges for Internal / Park View", dec(rate(u.viewCharge, totalArea)), amt(u.viewCharge))}
+            ${line("Charges for Shifting", dec(rate(u.shiftingCharge, totalArea)), amt(u.shiftingCharge))}
+            ${line("Charges for Amenities", dec(rate(u.amenitiesCharge, totalArea)), amt(u.amenitiesCharge))}
+            ${line("Gas Pipeline charges", "Fixed", amt(u.gasPipeline))}
+            ${total("ESTIMATED UNIT VALUE INCLUDING AMENITIES", amt(unitValue), "#0070c0")}
+            <tr>
+              <td colspan="2" style="${B}text-align:center;padding:5px">GST ON UNIT VALUE INCLUDING AMENITIES - ( NIL AS OC RECEIVED)</td>
+              <td style="${B}text-align:center">:</td>
+              <td style="${B}text-align:right;padding:4px 6px">${amt(gstOnUnit)}</td>
+            </tr>
+            ${total("ESTIMATED TOTAL UNIT VALUE INCLUDING GST - (A)", amt(totalA), "#0070c0")}
 
-    <tr><td colspan="3" style="padding:0;border:none">
-      <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:10.5px">
-        <tbody>
-          <tr style="font-weight:bold;text-align:center">
-            <td width="4%" style="border:1px solid #000">S.No</td>
-            <td width="7%" style="border:1px solid #000">DATE</td>
-            <td width="27%" style="border:1px solid #000">Description of Payments</td>
-            <td width="5%" style="border:1px solid #000">UV %</td>
-            <td width="10%" style="border:1px solid #000">Instalment Amount Payable</td>
-            <td width="5%" style="border:1px solid #000">TDS</td>
-            <td width="9%" style="border:1px solid #000">TDS to be Remitted through Traces of Purchaser(s)</td>
-            <td width="10%" style="border:1px solid #000">Amount payable to Developer (excl. TDS)</td>
-            <td width="5%" style="border:1px solid #000">GST %</td>
-            <td width="8%" style="border:1px solid #000">GST Amount Payable to Developer on each instalment</td>
-            <td width="10%" style="border:1px solid #000">Instalment Amount payable to Developer (incl. GST, excl. TDS)</td>
-          </tr>
-          ${buildRowsHtml(rows)}
-          <tr style="font-weight:bold;text-align:center">
-            <td colspan="3" style="border:1px solid #000">TOTAL - A</td>
-            <td style="border:1px solid #000">100%</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(tA.amount)}</td>
-            <td style="border:1px solid #000"></td>
-            <td style="border:1px solid #000;text-align:right">${fmt(tA.tdsAmount)}</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(tA.developerAmount)}</td>
-            <td style="border:1px solid #000"></td>
-            <td style="border:1px solid #000;text-align:right">${fmt(tA.gstAmount)}</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(tA.payableAmount)}</td>
-          </tr>
-        </tbody>
-      </table>
-    </td></tr>
+            ${head("ESTIMATE OF OTHER CHARGES")}
+            ${line("Legal &amp; Documentation Charges incl. GST", "", amt(legal))}
+            ${line("Charges towards Common Area Maintenance for 2 years including GST", "", amt(maintenance))}
+            ${line("Corpus Fund", "", amt(corpus))}
+            ${line("Refundable Caution Deposit", "", amt(refDep))}
+            ${line("Non-refundable Caution Deposit", "", amt(nonRefDep))}
+            ${total("ESTIMATED TOTAL UNIT VALUE INCLUDING GST - (B)", amt(totalB), "#0070c0")}
+            ${total("ESTIMATED TOTAL UNIT VALUE INCLUDING GST &amp; OTHER CHARGES - (A+B)", amt(grand), "#ff0000")}
+          </tbody>
+        </table>
+      </td></tr>
 
-    <tr>
-      <td colspan="3" style="border:1px solid #000;text-align:center;padding:5px 0">
-        <span style="font-weight:bold">AMOUNT PAYABLE AT THE TIME OF REGISTRATION OF APARTMENT</span>
-      </td>
-    </tr>
-    <tr><td colspan="3" style="padding:0;border:none">
-      <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:10.5px">
-        <tbody>
-          <tr>
-            <td width="6%" style="border:1px solid #000;text-align:center">12</td>
-            <td width="50%" style="border:1px solid #000">Legal and Documentation Charges</td>
-            <td width="14%" style="border:1px solid #000;text-align:right">${fmt(b.legalCharge)}</td>
-            <td width="8%" style="border:1px solid #000;text-align:center">18%</td>
-            <td width="10%" style="border:1px solid #000;text-align:right">${fmt(b.legalGst)}</td>
-            <td width="12%" style="border:1px solid #000;text-align:right;font-weight:bold">${fmt(b.total)}</td>
-          </tr>
-          <tr style="font-weight:bold">
-            <td colspan="5" style="border:1px solid #000">TOTAL - B (Excluding Registration / Stamp Duty &amp; Mutation Charges)</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(b.total)}</td>
-          </tr>
-        </tbody>
-      </table>
-    </td></tr>
-
-    <tr>
-      <td colspan="3" style="border:1px solid #000;text-align:center;padding:5px 0">
-        <span style="font-weight:bold">AMOUNTS PAYABLE AT THE TIME OF HANDING OVER OF APARTMENT</span>
-      </td>
-    </tr>
-    <tr><td colspan="3" style="padding:0;border:none">
-      <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:10.5px">
-        <tbody>
-          <tr style="font-weight:bold;text-align:center">
-            <td width="6%">Sl.No</td>
-            <td width="50%" style="border:1px solid #000">Particulars</td>
-            <td width="14%" style="border:1px solid #000">Amount Payable</td>
-            <td width="8%" style="border:1px solid #000">GST %</td>
-            <td width="10%" style="border:1px solid #000">GST Amount</td>
-            <td width="12%" style="border:1px solid #000">Amount Payable incl. GST (in INR)</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;text-align:center">13</td>
-            <td style="border:1px solid #000">Maintenance for 2 years @ Rs. 96/- per Sq.ft &amp; GST @ 18%</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(cc.maintenance)}</td>
-            <td style="border:1px solid #000;text-align:center">18%</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(cc.maintenanceGst)}</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(cc.maintenanceTotal)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;text-align:center">14</td>
-            <td style="border:1px solid #000">Corpus Fund</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(cc.corpus)}</td>
-            <td style="border:1px solid #000;text-align:center">-</td>
-            <td style="border:1px solid #000;text-align:right">-</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(cc.corpus)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;text-align:center">15</td>
-            <td style="border:1px solid #000">Non-refundable Caution Deposit</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(cc.nonRefDeposit)}</td>
-            <td style="border:1px solid #000;text-align:center">-</td>
-            <td style="border:1px solid #000;text-align:right">-</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(cc.nonRefDeposit)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid #000;text-align:center">16</td>
-            <td style="border:1px solid #000">Refundable Caution Deposit</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(cc.refDeposit)}</td>
-            <td style="border:1px solid #000;text-align:center">-</td>
-            <td style="border:1px solid #000;text-align:right">-</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(cc.refDeposit)}</td>
-          </tr>
-          <tr style="font-weight:bold;text-align:center">
-            <td colspan="2" style="border:1px solid #000">TOTAL - C</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(cc.totalAmount)}</td>
-            <td style="border:1px solid #000"></td>
-            <td style="border:1px solid #000;text-align:right">${fmt(cc.totalGst)}</td>
-            <td style="border:1px solid #000;text-align:right">${fmt(cc.total)}</td>
-          </tr>
-        </tbody>
-      </table>
-    </td></tr>
-
-    <tr>
-      <td colspan="3" style="border-top:3px double #000;border-bottom:3px double #000;border-left:1px solid #000;border-right:1px solid #000;text-align:center;padding:8px 4px">
-        <span style="font-size:13px;font-weight:bold">
-          GRAND TOTAL (A + B + C) - (INCLUDING TDS / EXCLUDING REGISTRATION, STAMPDUTY &amp; MUTATION CHARGES)&nbsp;:&nbsp;
-          Rs. ${fmt(result.grandTotal)}
-        </span>
-      </td>
-    </tr>
-
-    <tr>
-      <td colspan="3" style="border:1px solid #000;text-align:center;padding:5px 0;background:#7f7f7f">
-        <span style="font-weight:bold;color:#fff">OTHER TERMS &amp; CONDITIONS</span>
-      </td>
-    </tr>
-    <tr><td colspan="3" style="padding:0;border:none">
-      <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:10px">
-        <tbody>
-          <tr><td width="3%" style="border:1px solid #000;text-align:center">1</td><td style="border:1px solid #000">The purchaser/s shall issue post dated cheques for all installments as per the Payment Schedule mentioned above irrespective of mode of funding i.e., self / bank finance. The PDC's shall be returned to customers in line with disbursements made. If the banker fails to disburse the amount, PDC shall be deposited as per the mentioned dates.</td></tr>
-          <tr><td style="border:1px solid #000;text-align:center">2</td><td style="border:1px solid #000">Installments mentioned above shall be paid as per the work progress on the date of booking - no deviation is allowed.</td></tr>
-          <tr><td style="border:1px solid #000;text-align:center">3</td><td style="border:1px solid #000">All consent letters from the customers addressed to respective banks shall be given at the time of entering into 'AOS' / Tripartite Agreement.</td></tr>
-          <tr><td style="border:1px solid #000;text-align:center">4</td><td style="border:1px solid #000">GST and other taxes if any shall be levied as applicable and as per the rules / laws amended from time to time.</td></tr>
-          <tr><td style="border:1px solid #000;text-align:center">5</td><td style="border:1px solid #000">* GST is Applicable on Cost of Apartment including Amenities, Maintenance Charges &amp; Gaspipeline Charges.</td></tr>
-          <tr><td style="border:1px solid #000;text-align:center">6</td><td style="border:1px solid #000">Registration shall commence on payment of 100% of the Cost of the Apartment.</td></tr>
-          <tr><td style="border:1px solid #000;text-align:center">7</td><td style="border:1px solid #000">Registration charges are subject to changes as per the provisions of registrations act prevailing at the time of registration.</td></tr>
-          <tr><td style="border:1px solid #000;text-align:center">8</td><td style="border:1px solid #000">Bank Charges for realization of out station cheques &amp; Cheque return charges will be recovered from the purchaser's account.</td></tr>
-        </tbody>
-      </table>
-    </td></tr>
-
-    <tr>
-      <td colspan="3" style="border:1px solid #000;padding:4px 6px;background:#7f7f7f">
-        <span style="font-weight:bold;color:#fff">NOTE : PDCS FOR THE AMOUNTS MENTIONED IN ABOVE SCHEDULE TO BE ISSUED IN THE FOLLOWING NAMES:</span>
-      </td>
-    </tr>
-    <tr><td colspan="3" style="padding:0;border:none">
-      <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:10.5px">
-        <tbody>
-          <tr><td width="3%" style="border:1px solid #000">1)</td><td width="27%" style="border:1px solid #000;font-weight:bold">INSTALLMENTS</td><td width="2%" style="border:1px solid #000;text-align:center">:</td><td style="border:1px solid #000;font-weight:bold">APARNA CONSTRUCTIONS AND ESTATES PRIVATE LIMITED</td></tr>
-          <tr><td style="border:1px solid #000">2)</td><td style="border:1px solid #000;font-weight:bold">MAINTENANCE CHARGES</td><td style="border:1px solid #000;text-align:center">:</td><td style="border:1px solid #000;font-weight:bold">APARNA PROPERTY MANAGEMENT SERVICES PVT. LTD</td></tr>
-          <tr><td style="border:1px solid #000">3)</td><td style="border:1px solid #000;font-weight:bold">CORPUS FUND &amp; NON-REFUNDABLE DEPOSIT</td><td style="border:1px solid #000;text-align:center">:</td><td style="border:1px solid #000;font-weight:bold">APARNA SYNERGY OWNERS WELFARE SOCIETY</td></tr>
-        </tbody>
-      </table>
-    </td></tr>
-
-    <tr>
-      <td colspan="3" style="border:1px solid #000;text-align:right;padding:6px">
-        <span style="font-weight:bold">I/We accept the above terms and conditions</span>
-      </td>
-    </tr>
-
-    <tr><td colspan="3" style="padding:0;border:none">
-      <table width="100%" cellpadding="18" cellspacing="0" style="border-collapse:collapse;font-size:11px">
-        <tbody>
-          <tr style="font-weight:bold">
-            <td width="25%" style="border-top:1px solid #000;text-align:center">Prepared by</td>
-            <td width="25%" style="border-top:1px solid #000;text-align:center">Authorized by</td>
-            <td width="25%" style="border-top:1px solid #000;text-align:center">Approved by</td>
-            <td width="25%" style="border-top:1px solid #000;text-align:center">Customer/(s) Signature</td>
-          </tr>
-        </tbody>
-      </table>
-    </td></tr>
-  </tbody>
+      <tr><td style="padding:0;border:none">
+        <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:12px">
+          <tbody>
+            <tr><td colspan="2" style="${B}text-align:center;font-weight:bold;color:#ff0000;padding:5px">TERMS AND CONDITIONS</td></tr>
+            ${termsHtml}
+          </tbody>
+        </table>
+      </td></tr>
+    </tbody>
   </table>
-  </div>
-  `;
+  </div>`;
 
   document.getElementById("content").innerHTML = html;
   document.getElementById("status").style.display = "none";
@@ -413,26 +236,26 @@ async function sendCostSheet() {
   if (!c.email) { alert("No email address (EMAIL ADDRESS 1) on this lead."); return; }
 
   const recipient = TEST_MODE ? TEST_EMAIL : c.email;
-  if (!confirm("Send the cost sheet to " + recipient + "?")) return;
+  if (!confirm("Send the cost estimate to " + recipient + "?")) return;
 
   btn.disabled = true;
   btn.textContent = "Sending…";
   try {
-    // Full standalone HTML file, then minified (whitespace between tags removed) to keep the payload small
+    // Full standalone HTML file, minified (whitespace between tags removed) to keep the payload small
     const bodyHtml = document.getElementById("content").innerHTML
       .replace(/>\s+</g, "><")
       .replace(/\s{2,}/g, " ")
       .trim();
-    const fullHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Payment Schedule - Cost Sheet</title></head><body>' + bodyHtml + '</body></html>';
+    const fullHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cost Estimate</title></head><body>' + bodyHtml + '</body></html>';
 
-    const subject = (TEST_MODE ? "[TEST] " : "") + "Payment Schedule cum Cost Sheet - " + txt(c.name) + (u.apartmentNo ? " - " + u.apartmentNo : "");
+    const subject = (TEST_MODE ? "[TEST] " : "") + "Cost Estimate - " + txt(c.name) + (u.apartmentNo ? " - " + u.apartmentNo : "");
 
     const req_data = {
       arguments: JSON.stringify({
         leadId: String(window.__leadId),
         toEmail: recipient,
         subjects: subject,
-        fileName: "Cost_Sheet_" + (txt(u.apartmentNo) || "Unit") + ".html",
+        fileName: "Cost_Estimate_" + (txt(u.apartmentNo) || "Unit") + ".html",
         html: fullHtml
       })
     };
@@ -444,7 +267,7 @@ async function sendCostSheet() {
     if (typeof out === "string") { try { out = JSON.parse(out); } catch (e) {} }
     if (out && out.status === "error") throw new Error(out.message || "Deluge function returned an error");
 
-    alert("Cost sheet sent to " + recipient);
+    alert("Cost estimate sent to " + recipient);
   } catch (e) {
     console.error(e);
     alert("Could not send email: " + (e && e.message ? e.message : JSON.stringify(e)));
@@ -459,26 +282,16 @@ function init(entityId) {
   ZOHO.CRM.FUNCTIONS.execute("detailsforwidget", req_data)
     .then(function (data) {
       let result = data.details.output;
-
-      // Option B: function returns a string, so parse it before using it as an object
       if (typeof result === "string") {
-        try {
-          result = JSON.parse(result);
-        } catch (e) {
-          showError("Could not parse response from detailsforwidget: " + e.message);
-          return;
-        }
+        try { result = JSON.parse(result); }
+        catch (e) { showError("Could not parse response from detailsforwidget: " + e.message); return; }
       }
-
       if (!result || result.status === "error") {
-        showError((result && result.message) || "Could not load the payment schedule.");
+        showError((result && result.message) || "Could not load the cost estimate.");
         return;
       }
-      try {
-        render(result);
-      } catch (e) {
-        showError("Error rendering schedule: " + e.message);
-      }
+      try { render(result); }
+      catch (e) { showError("Error rendering cost estimate: " + e.message); }
     })
     .catch(function (err) {
       showError("Could not run detailsforwidget. (" + JSON.stringify(err) + ")");
