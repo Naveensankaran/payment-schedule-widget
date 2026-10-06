@@ -123,6 +123,23 @@ function render(result) {
   const totalB = legal + maintenance + corpus + refDep + nonRefDep;
   const grand = totalA + totalB;
 
+  // --- Cost estimate particulars: a row is shown only when its amount is non-zero / non-empty ---
+  const costItems = [
+    ["Basic Price for Built-up Area",              dec(rate(u.basicPriceBuiltup, builtUp)),  u.basicPriceBuiltup],
+    ["Basic Price for Differential Built-up Area", dec(rate(u.basicPriceDiff, diffArea)),    u.basicPriceDiff],
+    ["Charges for Floor Rise",                     dec(rate(u.floorRiseCharge, totalArea)),  u.floorRiseCharge],
+    ["Charges for East / North Facing",            dec(rate(u.facingCharge, totalArea)),     u.facingCharge],
+    ["Charges for Corner Preference",              dec(rate(u.cornerCharge, totalArea)),     u.cornerCharge],
+    ["Charges for Internal / Park View",           dec(rate(u.viewCharge, totalArea)),       u.viewCharge],
+    ["Charges for Shifting",                       dec(rate(u.shiftingCharge, totalArea)),   u.shiftingCharge],
+    ["Charges for Amenities",                      dec(rate(u.amenitiesCharge, totalArea)),  u.amenitiesCharge],
+    ["Gas Pipeline charges",                       "Fixed",                                  u.gasPipeline]
+  ];
+  const costRowsHtml = costItems
+    .filter(it => !isEmpty(it[2]) && num(it[2]) !== 0)
+    .map(it => line(it[0], it[1], amt(it[2])))
+    .join("");
+
   const termsHtml = TERMS.map((t, i) => `
     <tr>
       <td style="${B}width:5%;text-align:center;padding:4px">${i + 1}</td>
@@ -181,15 +198,7 @@ function render(result) {
             </tr>
 
             ${head("COST ESTIMATE PARTICULARS")}
-            ${line("Basic Price for Built-up Area", dec(rate(u.basicPriceBuiltup, builtUp)), amt(u.basicPriceBuiltup))}
-            ${line("Basic Price for Differential Built-up Area", dec(rate(u.basicPriceDiff, diffArea)), amt(u.basicPriceDiff))}
-            ${line("Charges for Floor Rise", dec(rate(u.floorRiseCharge, totalArea)), amt(u.floorRiseCharge))}
-            ${line("Charges for East / North Facing", dec(rate(u.facingCharge, totalArea)), amt(u.facingCharge))}
-            ${line("Charges for Corner Preference", dec(rate(u.cornerCharge, totalArea)), amt(u.cornerCharge))}
-            ${line("Charges for Internal / Park View", dec(rate(u.viewCharge, totalArea)), amt(u.viewCharge))}
-            ${line("Charges for Shifting", dec(rate(u.shiftingCharge, totalArea)), amt(u.shiftingCharge))}
-            ${line("Charges for Amenities", dec(rate(u.amenitiesCharge, totalArea)), amt(u.amenitiesCharge))}
-            ${line("Gas Pipeline charges", "Fixed", amt(u.gasPipeline))}
+            ${costRowsHtml}
             ${total("ESTIMATED UNIT VALUE INCLUDING AMENITIES", amt(unitValue), "#0070c0")}
             <tr>
               <td colspan="2" style="${B}text-align:center;padding:5px">GST ON UNIT VALUE INCLUDING AMENITIES - ( NIL AS OC RECEIVED)</td>
