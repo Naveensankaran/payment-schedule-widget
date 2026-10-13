@@ -24,9 +24,6 @@
 <div id="content"></div>
 
 <script>
-const TEST_MODE = true;                        // set to false for production
-const TEST_EMAIL = "sankarnaveen622@gmail.com";
-
 // ---- empty-safe helpers ----
 function isEmpty(n) { return n === null || n === undefined || n === "" || (typeof n === "number" && isNaN(n)); }
 function txt(v) { return (v === null || v === undefined) ? "" : v; }
@@ -244,7 +241,7 @@ async function sendCostSheet() {
   const u = (window.__result && window.__result.unit) || {};
   if (!c.email) { alert("No email address (EMAIL ADDRESS 1) on this lead."); return; }
 
-  const recipient = TEST_MODE ? TEST_EMAIL : c.email;
+  const recipient = c.email;
   if (!confirm("Send the cost estimate to " + recipient + "?")) return;
 
   btn.disabled = true;
@@ -257,14 +254,14 @@ async function sendCostSheet() {
       .trim();
     const fullHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cost Estimate</title></head><body>' + bodyHtml + '</body></html>';
 
-    const subject = (TEST_MODE ? "[TEST] " : "") + "Cost Estimate - " + txt(c.name) + (u.apartmentNo ? " - " + u.apartmentNo : "");
+    const subject = "Cost Estimate - " + txt(c.name) + (u.apartmentNo ? " - " + u.apartmentNo : "");
 
     const req_data = {
       arguments: JSON.stringify({
         leadId: String(window.__leadId),
         toEmail: recipient,
         subjects: subject,
-        fileName: "Cost_Estimate_" + (txt(u.apartmentNo) || "Unit") + ".html",
+        fileName: "Cost_Estimate_" + (txt(u.apartmentNo) || "Unit"),
         html: fullHtml
       })
     };
