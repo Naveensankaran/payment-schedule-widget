@@ -12,7 +12,10 @@
   #error { padding: 16px; background: #fdecea; color: #b71c1c; border: 1px solid #f5c6cb; border-radius: 4px; margin: 10px 0; display: none; }
   #printBtn { margin-bottom: 10px; padding: 6px 14px; cursor: pointer; }
   #mailBtn { margin-bottom: 10px; margin-left: 6px; padding: 6px 14px; cursor: pointer; }
-  @media print { #printBtn, #mailBtn { display: none; } }
+  #msg { display: none; margin: 0 0 10px 10px; padding: 6px 10px; border-radius: 4px; font-size: 12px; }
+  #msg.ok { display: inline-block; background: #e8f5e9; color: #1b5e20; border: 1px solid #c8e6c9; }
+  #msg.err { display: inline-block; background: #fdecea; color: #b71c1c; border: 1px solid #f5c6cb; }
+  @media print { #printBtn, #mailBtn, #msg { display: none !important; } }
 </style>
 </head>
 <body>
@@ -21,6 +24,7 @@
 <div id="error"></div>
 <button id="printBtn" style="display:none" onclick="window.print()">Print</button>
 <button id="mailBtn" style="display:none" onclick="sendCostSheet()">Email to customer</button>
+<span id="msg"></span>
 <div id="content"></div>
 
 <script>
@@ -55,6 +59,12 @@ function showError(msg) {
   const el = document.getElementById("error");
   el.style.display = "block";
   el.textContent = msg;
+}
+
+function setMsg(text, type) {
+  const m = document.getElementById("msg");
+  m.textContent = text;
+  m.className = type || "";
 }
 
 const B = "border:1px solid #000;";
@@ -239,10 +249,10 @@ async function sendCostSheet() {
   const btn = document.getElementById("mailBtn");
   const c = (window.__result && window.__result.customer) || {};
   const u = (window.__result && window.__result.unit) || {};
-  if (!c.email) { alert("No email address (EMAIL ADDRESS 1) on this lead."); return; }
+  if (!c.email) { setMsg("No email address (EMAIL ADDRESS 1) on this lead.", "err"); return; }
 
   const recipient = c.email;
-  if (!confirm("Send the cost estimate to " + recipient + "?")) return;
+  setMsg("", "");
 
   btn.disabled = true;
   btn.textContent = "Sending…";
@@ -273,10 +283,10 @@ async function sendCostSheet() {
     if (typeof out === "string") { try { out = JSON.parse(out); } catch (e) {} }
     if (out && out.status === "error") throw new Error(out.message || "Deluge function returned an error");
 
-    alert("Cost estimate sent to " + recipient);
+    setMsg("Cost estimate sent to " + recipient, "ok");
   } catch (e) {
     console.error(e);
-    alert("Could not send email: " + (e && e.message ? e.message : JSON.stringify(e)));
+    setMsg("Could not send email: " + (e && e.message ? e.message : JSON.stringify(e)), "err");
   } finally {
     btn.disabled = false;
     btn.textContent = "Email to customer";
