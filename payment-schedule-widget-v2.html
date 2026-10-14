@@ -95,6 +95,14 @@ function line(label, rateVal, value, opts) {
     <td style="${B}width:20%;text-align:right;padding:4px 6px">${value}</td>
   </tr>`;
 }
+// label | : | amount  (no empty rate column)
+function lineNoRate(label, value) {
+  return `<tr>
+    <td colspan="2" style="${B}padding:4px 6px">${label}</td>
+    <td style="${B}width:3%;text-align:center">:</td>
+    <td style="${B}width:20%;text-align:right;padding:4px 6px">${value}</td>
+  </tr>`;
+}
 // bold, centered total row
 function total(label, value, color) {
   const c = color ? "color:" + color + ";" : "";
@@ -114,20 +122,23 @@ function render(result) {
   const diffArea = num(u.diffBuiltUpArea);
   const totalArea = !isEmpty(u.totalSaleableArea) ? num(u.totalSaleableArea) : builtUp + diffArea;
 
-  // --- Section A: unit value. GST on unit value is intentionally left empty. ---
+  // --- Section A: unit value. GST comes from the Unit's GST field. ---
   const unitValue = !isEmpty(u.totalUnitValue)
     ? num(u.totalUnitValue)
     : num(u.basicUnitValue) + num(u.amenitiesCharge) + num(u.gasPipeline);
-  const gstOnUnit = null;                              // left empty
+  const gstOnUnit = isEmpty(u.gst) ? null : num(u.gst);   // Unit.Gst
+  const gstIsNil = num(gstOnUnit) === 0;
   const totalA = unitValue + num(gstOnUnit);
 
   // --- Section B: other charges (all incl. GST) ---
   const legal = num(b.total);
+  const parking = num(u.carParkingCharges);   // Unit.Car_Parking_Charges
+  const bwssb = num(u.bwssb);                 // Unit.Bwssb_And_Bescom_Karnataka
   const maintenance = num(cc.maintenanceTotal);
   const corpus = num(cc.corpus);
   const refDep = num(cc.refDeposit);
   const nonRefDep = num(cc.nonRefDeposit);
-  const totalB = legal + maintenance + corpus + refDep + nonRefDep;
+  const totalB = legal + parking + bwssb + maintenance + corpus + refDep + nonRefDep;
   const grand = totalA + totalB;
 
   // --- Cost estimate particulars: a row is shown only when its amount is non-zero / non-empty ---
@@ -208,18 +219,20 @@ function render(result) {
             ${costRowsHtml}
             ${total("ESTIMATED UNIT VALUE INCLUDING AMENITIES", amt(unitValue), "#0070c0")}
             <tr>
-              <td colspan="2" style="${B}text-align:center;padding:5px">GST ON UNIT VALUE INCLUDING AMENITIES - ( NIL AS OC RECEIVED)</td>
+              <td colspan="2" style="${B}text-align:center;padding:5px">GST ON UNIT VALUE INCLUDING AMENITIES${gstIsNil ? " - ( NIL AS OC RECEIVED)" : ""}</td>
               <td style="${B}text-align:center">:</td>
-              <td style="${B}text-align:right;padding:4px 6px">${amt(gstOnUnit)}</td>
+              <td style="${B}text-align:right;padding:4px 6px">${gstIsNil ? "" : amt(gstOnUnit)}</td>
             </tr>
             ${total("ESTIMATED TOTAL UNIT VALUE INCLUDING GST - (A)", amt(totalA), "#0070c0")}
 
             ${head("ESTIMATE OF OTHER CHARGES")}
-            ${line("Legal &amp; Documentation Charges incl. GST", "", amt(legal))}
-            ${line("Charges towards Common Area Maintenance for 2 years including GST", "", amt(maintenance))}
-            ${line("Corpus Fund", "", amt(corpus))}
-            ${line("Refundable Caution Deposit", "", amt(refDep))}
-            ${line("Non-refundable Caution Deposit", "", amt(nonRefDep))}
+            ${lineNoRate("Legal &amp; Documentation Charges incl. GST", amt(legal))}
+            ${lineNoRate("Car Parking Charges", amt(parking))}
+            ${lineNoRate("BWSSB &amp; BESCOM Charges", amt(bwssb))}
+            ${lineNoRate("Charges towards Common Area Maintenance for 2 years including GST", amt(maintenance))}
+            ${lineNoRate("Corpus Fund", amt(corpus))}
+            ${lineNoRate("Refundable Caution Deposit", amt(refDep))}
+            ${lineNoRate("Non-refundable Caution Deposit", amt(nonRefDep))}
             ${total("ESTIMATED TOTAL UNIT VALUE INCLUDING GST - (B)", amt(totalB), "#0070c0")}
             ${total("ESTIMATED TOTAL UNIT VALUE INCLUDING GST &amp; OTHER CHARGES - (A+B)", amt(grand), "#ff0000")}
           </tbody>
